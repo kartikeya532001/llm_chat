@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: llm-worker-spot
+  namespace: llm
+spec:
+  replicas: 0
+  selector:
+    matchLabels:
+      app: llm-worker-spot
+  template:
+    metadata:
+      labels:
+        app: llm-worker-spot
+    spec:
+      nodeSelector:
+        pool: spot
+      containers:
+        - name: worker
+          image: kartikeya532001/llm-chat:latest
+          imagePullPolicy: Always
+          env:
+            - name: RUN_MODE
+              value: "worker"
+            - name: REDIS_HOST
+              value: "redis-master"
+            - name: REDIS_PORT
+              value: "6379"
+          resources:
+            requests:
+              cpu: "2000m"
+              memory: "4Gi"
+            limits:
+              cpu: "4000m"
+              memory: "8Gi"

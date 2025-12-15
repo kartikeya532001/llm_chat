@@ -1,0 +1,85 @@
+apiVersion: eksctl.io/v1alpha5
+kind: ClusterConfig
+
+metadata:
+  name: llm-cluster
+  region: us-east-1
+  version: "1.30"
+
+vpc:
+  cidr: 10.0.0.0/16
+
+
+# enable OIDC for IRSA / addon permissions (recommended)
+iam:
+  withOIDC: true
+
+cloudWatch:
+  clusterLogging:
+    enableTypes: ["audit", "authenticator", "controllerManager"]
+
+managedNodeGroups:
+
+  # ----------------------------------------------------
+  # 1. WARM POOL (Always on, On-Demand)
+  # ----------------------------------------------------
+  - name: cpu-warm
+    amiFamily: AmazonLinux2
+    instanceType: r6g.large
+    desiredCapacity: 1
+    minSize: 1
+    maxSize: 1
+    ssh:
+      allow: true
+      publicKeyName: Testing
+    labels:
+      node-role: cpu
+      pool: warm
+    taints:
+      - key: warm-pool
+        value: "true"
+        effect: NoSchedule
+
+    iam:
+      attachPolicyARNs:
+        - arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy
+        - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
+        - arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+
+    # Recommended for stability
+    volumeSize: 40
+    privateNetworking: true
+
+  # ----------------------------------------------------
+  # 2. SPOT NODES (Scale when load increases)
+  # ----------------------------------------------------
+  - name: cpu-spot
+    amiFamily: AmazonLinux2
+    # use multiple acceptable types so Spot provisioning is resilient
+    instanceTypes:
+      - r6g.xlarge
+    minSize: 0
+    desiredCapacity: 0
+    maxSize: 3
+
+    spot: true   # enables Spot capacity
+
+    labels:
+      node-role: cpu
+      pool: spot
+
+    taints:
+      - key: spot
+        value: "true"
+        effect: PreferNoSchedule
+
+    iam:
+      attachPolicyARNs:
+        - arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy
+        - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
+        - arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+
+    volumeSize: 40
+    privateNetworking: true

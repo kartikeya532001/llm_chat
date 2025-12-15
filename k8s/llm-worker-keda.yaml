@@ -1,0 +1,23 @@
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: llm-worker-scaledobject
+  namespace: llm
+spec:
+  scaleTargetRef:
+    name: llm-worker-spot  # scale the spot deployment
+  pollingInterval: 5
+  cooldownPeriod: 30
+  minReplicaCount: 0     # start with 0, scale only when queue has jobs
+  maxReplicaCount: 3
+  triggers:
+  - type: redis
+    metadata:
+      address: redis-master:6379
+      listName: queue:normal
+      listLength: "5"      # scale out when queue > 5
+  - type: redis
+    metadata:
+      address: redis-master:6379
+      listName: queue:high
+      listLength: "1"

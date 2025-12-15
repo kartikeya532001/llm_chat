@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: llm-worker-warm
+  namespace: llm
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: llm-worker-warm
+  template:
+    metadata:
+      labels:
+        app: llm-worker-warm
+    spec:
+      nodeSelector:
+        pool: warm
+      tolerations:
+        - key: "warm-pool"
+          operator: "Equal"
+          value: "true"
+          effect: "NoSchedule"
+      containers:
+        - name: worker
+          image: kartikeya532001/llm-chat:latest
+          imagePullPolicy: Always
+          env:
+            - name: RUN_MODE
+              value: "worker"
+            - name: REDIS_HOST
+              value: "redis-master"
+            - name: REDIS_PORT
+              value: "6379"
