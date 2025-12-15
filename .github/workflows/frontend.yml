@@ -54,8 +54,8 @@ jobs:
         projectBaseDir: chat-app
       env:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        SONAR_ORGANIZATION: your-org
-        SONAR_PROJECT_KEY: frontend-project
+        SONAR_ORGANIZATION: ${{ secrets.SONAR_ORGANIZATION }}
+        SONAR_PROJECT_KEY: ${{ secrets.SONAR_PROJECT_KEY }}
 
     # -------------------------
     # Trivy FS Scan (PRE-BUILD)
