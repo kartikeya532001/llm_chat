@@ -1,96 +1,122 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
-import { Box, Button, TextField, CircularProgress, Typography, Paper } from "@mui/material";
+import { Box, Typography, CircularProgress } from "@mui/material";
+import ChatInput from "./ChatInput";
+import ChatWindow from "./ChatWindow";
 
 const ChatApp = () => {
   const [question, setQuestion] = useState("");
-  const [jobs, setJobs] = useState([]); // Each job: { job_id, question, response, status }
+  const [messages, setMessages] = useState([]);
+  const [jobs, setJobs] = useState([]);
+  const completedJobs = useRef(new Set());
+
+  const addMessage = (text, sender = "user") => {
+    setMessages((prev) => [
+      ...prev,
+      { text, sender, time: new Date().toLocaleTimeString() },
+    ]);
+  };
 
   const sendQuestion = async () => {
     if (!question.trim()) return;
 
+    addMessage(question, "user");
+
     try {
-      // Call /chat API
       const res = await axios.post("http://localhost:8080/chat", {
         text: question,
-        priority: "normal"
+        priority: "normal",
       });
 
-      const newJob = {
-        job_id: res.data.job_id,
-        question,
-        response: "",
-        status: "queued"
-      };
-
-      setJobs((prev) => [newJob, ...prev]);
+      const newJob = { job_id: res.data.job_id, question, status: "queued" };
+      setJobs((prev) => [...prev, newJob]);
       setQuestion("");
-
-      // Start polling
-      pollResult(newJob.job_id);
     } catch (err) {
       console.error(err);
-      alert("Error sending question. Check console.");
+      addMessage("Error sending question. Check console.", "bot");
     }
   };
 
-  const pollResult = (job_id) => {
+  // Polling for jobs
+  useEffect(() => {
     const interval = setInterval(async () => {
-      try {
-        const res = await axios.get(`http://localhost:8080/result/${job_id}`);
-        setJobs((prev) =>
-          prev.map((job) =>
-            job.job_id === job_id
-              ? {
-                  ...job,
-                  response: res.data.response || "",
-                  status: res.data.status
-                }
-              : job
-          )
-        );
+      const pendingJobs = jobs.filter((j) => j.status !== "done");
+      if (!pendingJobs.length) return;
 
-        if (res.data.status === "done") clearInterval(interval);
-      } catch (err) {
-        console.error(err);
-      }
-    }, 2000); // Poll every 2 seconds
-  };
+      const updates = await Promise.all(
+        pendingJobs.map(async (job) => {
+          try {
+            const res = await axios.get(
+              `http://localhost:8080/result/${job.job_id}`
+            );
+            return { ...job, status: res.data.status, response: res.data.response };
+          } catch {
+            return job;
+          }
+        })
+      );
+
+      setJobs((prev) =>
+        prev.map((job) => {
+          const updated = updates.find((u) => u.job_id === job.job_id);
+          if (!updated) return job;
+
+          if (
+            updated.status === "done" &&
+            updated.response &&
+            !completedJobs.current.has(job.job_id)
+          ) {
+            addMessage(updated.response, "bot");
+            completedJobs.current.add(job.job_id);
+          }
+          return updated;
+        })
+      );
+    }, 2000);
+
+    return () => clearInterval(interval);
+  }, [jobs]);
 
   return (
-    <Box sx={{ maxWidth: 600, margin: "20px auto", padding: 2 }}>
-      <Typography variant="h4" align="center" gutterBottom>
-        Chat with API
-      </Typography>
+    <Box
+      sx={{
+        minHeight: "100vh",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "flex-start",
+        p: 3,
+        background:
+          "linear-gradient(135deg, #74ebd5 0%, #ACB6E5 100%)",
+      }}
+    >
+      <Box
+        sx={{
+          width: "100%",
+          maxWidth: 600,
+          bgcolor: "background.paper",
+          p: 3,
+          borderRadius: 3,
+          boxShadow: 5,
+        }}
+      >
+        <Typography variant="h4" align="center" gutterBottom>
+          AI Chat
+        </Typography>
 
-      <Box sx={{ display: "flex", gap: 1, mb: 2 }}>
-        <TextField
-          fullWidth
-          label="Type your question"
-          value={question}
-          onChange={(e) => setQuestion(e.target.value)}
+        <ChatWindow messages={messages} />
+
+        {jobs.some((j) => j.status !== "done") && (
+          <Box sx={{ display: "flex", justifyContent: "center", mb: 1 }}>
+            <CircularProgress size={24} />
+          </Box>
+        )}
+
+        <ChatInput
+          question={question}
+          setQuestion={setQuestion}
+          sendQuestion={sendQuestion}
         />
-        <Button variant="contained" onClick={sendQuestion}>
-          Send
-        </Button>
-      </Box>
-
-      <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-        {jobs.map((job) => (
-          <Paper key={job.job_id} sx={{ p: 2 }} elevation={2}>
-            <Typography variant="subtitle1" color="primary">
-              You: {job.question}
-            </Typography>
-            <Typography variant="body1" sx={{ mt: 1 }}>
-              Bot:{" "}
-              {job.status === "done" ? (
-                job.response
-              ) : (
-                <CircularProgress size={20} sx={{ verticalAlign: "middle" }} />
-              )}
-            </Typography>
-          </Paper>
-        ))}
       </Box>
     </Box>
   );
