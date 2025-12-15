@@ -1,5 +1,6 @@
 # api.py
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import uuid, json, os
 import redis
@@ -9,7 +10,13 @@ REDIS_PORT = int(os.getenv("REDIS_PORT", "6379"))
 
 r = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, decode_responses=True)
 app = FastAPI()
-
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 class ChatRequest(BaseModel):
     text: str
     priority: str = "normal"
