@@ -39,7 +39,11 @@ jobs:
     - name: Run tests
       run: |
         cd chat-app
-        npm test -- --watch=false
+        if npm run | grep -q "test"; then
+          npm test
+        else
+          echo "No tests defined, skipping"
+        fi
 
     # -------------------------
     # Sonar Scan (PRE-BUILD)

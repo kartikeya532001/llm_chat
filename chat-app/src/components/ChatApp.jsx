@@ -101,7 +101,7 @@ const ChatApp = () => {
         }}
       >
         <Typography variant="h4" align="center" gutterBottom>
-          Chat Application
+          AI Application
         </Typography>
 
         <ChatWindow messages={messages} />
