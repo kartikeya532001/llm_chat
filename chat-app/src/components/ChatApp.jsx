@@ -101,7 +101,7 @@ const ChatApp = () => {
         }}
       >
         <Typography variant="h4" align="center" gutterBottom>
-          Chat with LLM
+          AI CHAT
         </Typography>
 
         <ChatWindow messages={messages} />
@@ -123,3 +123,4 @@ const ChatApp = () => {
 };
 
 export default ChatApp;
+
