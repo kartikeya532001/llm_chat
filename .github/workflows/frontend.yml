@@ -35,6 +35,14 @@ jobs:
         node-version: 20
         cache: npm
         cache-dependency-path: chat-app/package-lock.json
+    
+    # -------------------------
+    # Download Trivy HTML Template
+    # -------------------------
+    - name: Download Trivy HTML template
+      run: |
+        curl -fsSL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/html.tpl -o html.tpl
+
 
     - name: Install dependencies
       run: |
@@ -74,7 +82,7 @@ jobs:
         scan-type: fs
         scan-ref: chat-app
         format: template
-        template: "@contrib/html.tpl"
+        template: "html.tpl"
         output: trivy-fs-report.html
         severity: HIGH,CRITICAL
         exit-code: 1
@@ -105,7 +113,7 @@ jobs:
       with:
         image-ref: ${{ secrets.DOCKERHUB_USERNAME }}/chat-app:${{ github.sha }}
         format: template
-        template: "@contrib/html.tpl"
+        template: "html.tpl"
         output: trivy-image-report.html
         severity: HIGH,CRITICAL
         exit-code: 1
@@ -140,3 +148,4 @@ jobs:
       if: success()
       run: |
         docker push ${{ secrets.DOCKERHUB_USERNAME }}/chat-app:${{ github.sha }}
+
