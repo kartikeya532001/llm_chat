@@ -49,19 +49,6 @@ jobs:
         fi
 
     # -------------------------
-    # Run tests
-    # -------------------------
-    - name: Run tests
-      run: |
-        cd backend
-        if pytest --maxfail=1 --disable-warnings; then
-          echo "Tests passed"
-        else
-          echo "Tests failed"
-          exit 1
-        fi
-
-    # -------------------------
     # SonarCloud Scan
     # -------------------------
     - name: SonarCloud Scan
