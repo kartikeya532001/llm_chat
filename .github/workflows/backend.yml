@@ -29,13 +29,37 @@ jobs:
         cache: "pip"
 
     # -------------------------
+    # Cleanup disk before install
+    # -------------------------
+    - name: Cleanup disk
+      run: |
+        sudo apt-get clean
+        sudo rm -rf /var/lib/apt/lists/*
+        docker system prune -af || true
+
+    # -------------------------
     # Install dependencies
     # -------------------------
     - name: Install dependencies
       run: |
         cd backend
         pip install --upgrade pip
-        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+        if [ -f requirements.txt ]; then
+          pip install --no-cache-dir -r requirements.txt
+        fi
+
+    # -------------------------
+    # Run tests
+    # -------------------------
+    - name: Run tests
+      run: |
+        cd backend
+        if pytest --maxfail=1 --disable-warnings; then
+          echo "Tests passed"
+        else
+          echo "Tests failed"
+          exit 1
+        fi
 
     # -------------------------
     # SonarCloud Scan
@@ -143,6 +167,14 @@ jobs:
       run: |
         echo "❌ HIGH or CRITICAL vulnerabilities detected"
         exit 1
+
+    # -------------------------
+    # Cleanup Docker after build
+    # -------------------------
+    - name: Cleanup Docker
+      if: always()
+      run: |
+        docker system prune -af || true
 
     # -------------------------
     # Push Docker Image
