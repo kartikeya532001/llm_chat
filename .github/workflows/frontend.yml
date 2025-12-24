@@ -3,10 +3,13 @@ name: Frontend CI - Scan & Push
 on:
   push:
     branches: [ master ]
-
+    paths: 
+      - "chat-app/**"
   pull_request:
     branches: [ master ]
-
+    paths: 
+      - "chat-app/**"
+      
 jobs:
   frontend-ci:
     runs-on: ubuntu-latest
