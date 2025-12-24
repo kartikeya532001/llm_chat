@@ -2,14 +2,12 @@ name: Frontend CI - Scan & Push
 
 on:
   push:
-    branches:
-      - master
+    branches: [ master ]
     # paths:
     #   - "chat-app/**"
 
   pull_request:
-    branches:
-      - master
+    branches: [ master ]
     # paths:
     #   - "chat-app/**"
 
@@ -27,7 +25,7 @@ jobs:
         fetch-depth: 0
 
     # -------------------------
-    # Node Setup & Tests
+    # Setup Node
     # -------------------------
     - name: Setup Node.js
       uses: actions/setup-node@v4
@@ -45,6 +43,9 @@ jobs:
         curl -fsSL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/html.tpl \
           -o trivy-templates/html.tpl
 
+    # -------------------------
+    # Install dependencies
+    # -------------------------
     - name: Install dependencies
       run: |
         cd chat-app
@@ -73,9 +74,9 @@ jobs:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
     # -------------------------
-    # Trivy FS Scan (HTML REPORT)
+    # Trivy FS Scan (HTML)
     # -------------------------
-    - name: Trivy FS scan (generate report)
+    - name: Trivy FS scan
       id: trivy_fs_report
       continue-on-error: true
       uses: aquasecurity/trivy-action@master
@@ -83,7 +84,7 @@ jobs:
         scan-type: fs
         scan-ref: chat-app
         format: template
-        template: "@/github/workspace/trivy-templates/html.tpl"
+        template: "trivy-templates/html.tpl"
         output: trivy-fs-report.html
         severity: HIGH,CRITICAL
         exit-code: 1
@@ -105,22 +106,22 @@ jobs:
         docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/chat-app:${{ github.sha }} chat-app
 
     # -------------------------
-    # Trivy Image Scan (HTML REPORT)
+    # Trivy Image Scan (HTML)
     # -------------------------
-    - name: Trivy image scan (generate report)
+    - name: Trivy image scan
       id: trivy_image_report
       continue-on-error: true
       uses: aquasecurity/trivy-action@master
       with:
         image-ref: ${{ secrets.DOCKERHUB_USERNAME }}/chat-app:${{ github.sha }}
         format: template
-        template: "@/github/workspace/trivy-templates/html.tpl"
+        template: "trivy-templates/html.tpl"
         output: trivy-image-report.html
         severity: HIGH,CRITICAL
         exit-code: 1
 
     # -------------------------
-    # Upload Trivy Reports (ALWAYS)
+    # Upload Reports
     # -------------------------
     - name: Upload Trivy reports
       if: always()
@@ -132,18 +133,18 @@ jobs:
           trivy-image-report.html
 
     # -------------------------
-    # Fail Pipeline if Trivy Found Issues
+    # Enforce Failure
     # -------------------------
     - name: Enforce Trivy failure
       if: |
         steps.trivy_fs_report.outcome == 'failure' ||
         steps.trivy_image_report.outcome == 'failure'
       run: |
-        echo "❌ HIGH or CRITICAL vulnerabilities detected by Trivy"
+        echo "❌ HIGH or CRITICAL vulnerabilities detected"
         exit 1
 
     # -------------------------
-    # Push Docker Image (Only if scans passed)
+    # Push Image
     # -------------------------
     - name: Push Docker image
       if: success()
