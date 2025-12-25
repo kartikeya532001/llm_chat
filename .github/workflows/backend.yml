@@ -93,7 +93,7 @@ jobs:
         set +e
         docker build --no-cache \
           -t ${{ secrets.DOCKERHUB_USERNAME }}/llm-api:${{ github.sha }} \
-          ./api
+          backend/api
         STATUS=$?
         set -e
 
@@ -122,7 +122,7 @@ jobs:
         set +e
         docker build --no-cache \
           -t ${{ secrets.DOCKERHUB_USERNAME }}/llm-worker:${{ github.sha }} \
-          ./worker
+          backend/worker
         STATUS=$?
         set -e
 
