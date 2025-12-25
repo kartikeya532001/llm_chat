@@ -3,12 +3,12 @@ name: Backend CI - Scan & Push
 on:
   push:
     branches: [ master ]
-     paths: 
+    paths:
       - "backend/**"
   pull_request:
     branches: [ master ]
-     paths: 
-      - "backend/**"
+    paths:
+      - "backend/**" 
 
 jobs:
   backend-ci:

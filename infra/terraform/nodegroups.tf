@@ -1,96 +1,101 @@
 # ======================================
-# Warm Pool (Always-on, On-Demand)
+# EKS Cluster
 # ======================================
-module "eks_node_group_warm" {
-  source  = "terraform-aws-modules/eks/aws//modules/eks-managed-node-group"
+module "eks" {
+  source  = "terraform-aws-modules/eks/aws"
   version = "20.8.4"
 
-  cluster_name    = module.eks.cluster_name
-  cluster_version = module.eks.cluster_version
-  name = "cpu-warm"
+  cluster_name    = "var.cluster_name"
+  cluster_version = "1.30"
+  vpc_id          = module.vpc.vpc_id
+  subnet_ids      = module.vpc.private_subnets
 
-  subnet_ids = module.vpc.private_subnets
-
-  instance_types = ["r6g.large"]
-  capacity_type  = "ON_DEMAND"
-
-  min_size     = 1
-  max_size     = 1
-  desired_size = 1
-
-  disk_size = 100
-
-  labels = {
-    "node-role" = "cpu"
-    "pool"      = "warm"
-  }
-
-  taints = [
-    {
-      key    = "warm-pool"
-      value  = "true"
-      effect = "NO_SCHEDULE"
-    }
-  ]
-
-  ssh_allow = true
-  ssh_public_key = "Testing"
-
+  # Optional: cluster logging, tags, etc.
   tags = {
-    Name = "cpu-warm-workers"
+    Environment = "prod"
+    Project     = "llm-chat"
   }
 
-  iam_role_additional_policy_arns = [
-    "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy",
-    "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly",
-    "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy",
-    "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
-  ]
-}
+  # ======================================
+  # Node Groups
+  # ======================================
+  node_groups = {
+    # ----------------------
+    # Warm Pool (ON_DEMAND)
+    # ----------------------
+    warm = {
+      desired_capacity       = 1
+      min_capacity           = 1
+      max_capacity           = 1
+      instance_type          = "r6g.large"
+      capacity_type          = "ON_DEMAND"
+      disk_size              = 100
 
-# ======================================
-# Spot Nodes (Scale on load)
-# ======================================
-module "eks_node_group_spot" {
-  source  = "terraform-aws-modules/eks/aws//modules/eks-managed-node-group"
-  version = "20.8.4"
+      iam_attach_policy_arns = [
+        "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy",
+        "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly",
+        "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy",
+        "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+      ]
 
-  cluster_name    = module.eks.cluster_name
-  cluster_version = module.eks.cluster_version
-  name = "cpu-spot"
+      labels = {
+        "node-role" = "cpu"
+        "pool"      = "warm"
+      }
 
-  subnet_ids = module.vpc.private_subnets
+      taints = [
+        {
+          key    = "warm-pool"
+          value  = "true"
+          effect = "NO_SCHEDULE"
+        }
+      ]
 
-  instance_types = ["r6g.xlarge"]
-  capacity_type  = "SPOT"
+      ssh_allow      = true
+      ssh_public_key = "Testing"
 
-  min_size     = 0
-  max_size     = 3
-  desired_size = 0
-
-  disk_size = 100
-
-  labels = {
-    "node-role" = "cpu"
-    "pool"      = "spot"
-  }
-
-  taints = [
-    {
-      key    = "spot"
-      value  = "true"
-      effect = "PREFER_NO_SCHEDULE"
+      tags = {
+        Name = "cpu-warm-workers"
+      }
     }
-  ]
 
-  tags = {
-    Name = "cpu-spot-workers"
+    # ----------------------
+    # Spot Pool (SPOT)
+    # ----------------------
+    spot = {
+      desired_capacity       = 0
+      min_capacity           = 0
+      max_capacity           = 3
+      instance_type          = "r6g.xlarge"
+      capacity_type          = "SPOT"
+      disk_size              = 100
+
+      iam_attach_policy_arns = [
+        "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy",
+        "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly",
+        "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy",
+        "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+      ]
+
+      labels = {
+        "node-role" = "cpu"
+        "pool"      = "spot"
+      }
+
+      taints = [
+        {
+          key    = "spot"
+          value  = "true"
+          effect = "PREFER_NO_SCHEDULE"
+        }
+      ]
+
+      ssh_allow      = true
+      ssh_public_key = "Testing"
+
+      tags = {
+        Name = "cpu-spot-workers"
+      }
+    }
   }
-
-  iam_role_additional_policy_arns = [
-    "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy",
-    "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly",
-    "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy",
-    "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
-  ]
 }
