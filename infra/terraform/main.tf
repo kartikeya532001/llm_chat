@@ -1,19 +1,8 @@
 # -----------------------------
-# AWS provider (already there)
+# AWS provider
 # -----------------------------
 provider "aws" {
   region = var.aws_region
-}
-
-# -----------------------------
-# Get EKS cluster info
-# -----------------------------
-data "aws_eks_cluster" "cluster" {
-  name = module.eks.cluster_name
-}
-
-data "aws_eks_cluster_auth" "cluster" {
-  name = module.eks.cluster_name
 }
 
 # -----------------------------
