@@ -1,7 +1,7 @@
 # ======================================
 # EKS Cluster
 # ======================================
-module "eks" {
+module "eksnode" {
   source  = "terraform-aws-modules/eks/aws"
   version = "20.8.4"
 
