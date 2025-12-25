@@ -51,9 +51,6 @@ module "warm_node_group" {
     }
   }
 
-  remote_access = {
-    ec2_ssh_key = aws_key_pair.eks_key.key_name
-  }
 
   iam_role_additional_policies = {
     WorkerNodePolicy = "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy"
@@ -102,9 +99,6 @@ module "spot_node_group" {
     }
   }
 
-  remote_access = {
-    ec2_ssh_key = aws_key_pair.eks_key.key_name
-  }
 
   iam_role_additional_policies = {
     WorkerNodePolicy = "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy"
