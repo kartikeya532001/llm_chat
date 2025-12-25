@@ -37,21 +37,6 @@ variable "vpc_cidr" {
   default     = "10.0.0.0/16"
 }
 
-# -----------------------------
-# Node group / autoscaler variables
-# -----------------------------
-variable "cluster_autoscaler_cluster_ids" {
-  description = "List of EKS cluster IDs for autoscaler"
-  type        = list(string)
-  default     = []
-}
-
-variable "cluster_autoscaler_cluster_names" {
-  description = "List of EKS cluster names for autoscaler"
-  type        = list(string)
-  default     = []
-}
-
 variable "create_node_groups" {
   description = "Whether to create node groups"
   type        = bool
