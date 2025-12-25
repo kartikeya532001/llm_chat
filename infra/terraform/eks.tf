@@ -11,7 +11,7 @@ module "eks" {
   enable_irsa = true
 
   endpoint_public_access = true
-  cluster_service_cidr = "10.0.200.0/24"  # example CIDR for cluster services
+  cluster_service_cidr = ["10.0.200.0/24"]  # example CIDR for cluster services
 
 
   tags = {
