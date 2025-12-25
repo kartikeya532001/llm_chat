@@ -7,7 +7,7 @@ module "eks_node_group_warm" {
 
   cluster_name    = module.eks.cluster_name
   cluster_version = module.eks.cluster_version
-  node_group_name = "cpu-warm"
+  name = "cpu-warm"
 
   subnet_ids = module.vpc.private_subnets
 
@@ -18,7 +18,7 @@ module "eks_node_group_warm" {
   max_size     = 1
   desired_size = 1
 
-  disk_size = 40
+  disk_size = 100
 
   labels = {
     "node-role" = "cpu"
@@ -40,7 +40,7 @@ module "eks_node_group_warm" {
     Name = "cpu-warm-workers"
   }
 
-  iam_attach_policy_arns = [
+  iam_role_additional_policy_arns = [
     "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy",
     "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly",
     "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy",
@@ -57,7 +57,7 @@ module "eks_node_group_spot" {
 
   cluster_name    = module.eks.cluster_name
   cluster_version = module.eks.cluster_version
-  node_group_name = "cpu-spot"
+  name = "cpu-spot"
 
   subnet_ids = module.vpc.private_subnets
 
@@ -68,7 +68,7 @@ module "eks_node_group_spot" {
   max_size     = 3
   desired_size = 0
 
-  disk_size = 40
+  disk_size = 100
 
   labels = {
     "node-role" = "cpu"
@@ -87,7 +87,7 @@ module "eks_node_group_spot" {
     Name = "cpu-spot-workers"
   }
 
-  iam_attach_policy_arns = [
+  iam_role_additional_policy_arns = [
     "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy",
     "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly",
     "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy",
