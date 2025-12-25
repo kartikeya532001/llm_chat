@@ -10,7 +10,7 @@ module "eks" {
 
   enable_irsa = true
 
-  cluster_endpoint_public_access = ["0.0.0.0/0"]
+  endpoint_public_access = true
 
   tags = {
     Environment = "prod"
