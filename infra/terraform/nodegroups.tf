@@ -23,9 +23,10 @@ output "eks_private_key_pem" {
 
 module "warm_node_group" {
   source  = "terraform-aws-modules/eks/aws//modules/eks-managed-node-group"
-  version = "~> 21.0"
+  version = "20.8.4"
 
   cluster_name    = module.eks.cluster_name
+  cluster_version = module.eks.cluster_version
   name = "cpu-warm"
 
   subnet_ids     = module.vpc.private_subnets
@@ -74,9 +75,10 @@ module "warm_node_group" {
 
 module "spot_node_group" {
   source  = "terraform-aws-modules/eks/aws//modules/eks-managed-node-group"
-  version = "~> 21.0"
+  version = "20.8.4"
 
   cluster_name    = module.eks.cluster_name
+  cluster_version = module.eks.cluster_version
   name = "cpu-spot"
 
   subnet_ids     = module.vpc.private_subnets
