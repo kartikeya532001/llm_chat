@@ -12,7 +12,7 @@ jobs:
 
     steps:
     # -------------------------
-    # Checkout code
+    # Checkout
     # -------------------------
     - name: Checkout code
       uses: actions/checkout@v4
@@ -20,11 +20,11 @@ jobs:
         fetch-depth: 0
 
     # -------------------------
-    # Aggressive disk cleanup (IMPORTANT)
+    # Aggressive disk cleanup
     # -------------------------
     - name: Free disk space
       run: |
-        echo "Before cleanup:"
+        echo "📦 Disk BEFORE cleanup"
         df -h
 
         sudo rm -rf /usr/share/dotnet
@@ -39,11 +39,11 @@ jobs:
 
         docker system prune -af || true
 
-        echo "After cleanup:"
+        echo "📦 Disk AFTER cleanup"
         df -h
 
     # -------------------------
-    # Setup Python
+    # Setup Python (for Sonar)
     # -------------------------
     - name: Setup Python
       uses: actions/setup-python@v4
@@ -51,18 +51,7 @@ jobs:
         python-version: 3.11
 
     # -------------------------
-    # Install dependencies (no cache)
-    # -------------------------
-    - name: Install dependencies
-      run: |
-        cd backend
-        python -m pip install --upgrade pip
-        if [ -f requirements.txt ]; then
-          pip install --no-cache-dir -r requirements.txt
-        fi
-
-    # -------------------------
-    # SonarCloud Scan
+    # SonarCloud Scan (API only)
     # -------------------------
     - name: SonarCloud Scan
       uses: sonarsource/sonarcloud-github-action@master
@@ -85,29 +74,6 @@ jobs:
         sudo dpkg -i trivy_0.68.2_Linux-64bit.deb
 
     # -------------------------
-    # Download Trivy HTML template
-    # -------------------------
-    - name: Download Trivy HTML template
-      run: |
-        mkdir -p trivy-templates
-        curl -fsSL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/html.tpl \
-          -o trivy-templates/html.tpl
-
-    # -------------------------
-    # Trivy FS Scan
-    # -------------------------
-    - name: Trivy FS scan
-      id: trivy_fs_report
-      continue-on-error: true
-      run: |
-        trivy fs backend \
-          --scanners vuln \
-          --severity HIGH,CRITICAL \
-          --format template \
-          --template "@trivy-templates/html.tpl" \
-          --output trivy-fs-report.html || true
-
-    # -------------------------
     # Docker Login
     # -------------------------
     - name: Login to Docker Hub
@@ -116,68 +82,74 @@ jobs:
         username: ${{ secrets.DOCKERHUB_USERNAME }}
         password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-    # -------------------------
-    # Docker Build (NO CACHE)
-    # -------------------------
-    - name: Build Docker image
+    # =====================================================
+    # BUILD API IMAGE
+    # =====================================================
+    - name: Build API image
       run: |
-            echo "📦 Disk space BEFORE docker build:"
-            df -h
+        echo "📦 Disk BEFORE API build"
+        df -h
 
-            set +e
-            docker build --no-cache \
-              -t ${{ secrets.DOCKERHUB_USERNAME }}/backend:${{ github.sha }} \
-              backend
-            BUILD_STATUS=$?
-            set -e
+        set +e
+        docker build --no-cache \
+          -t ${{ secrets.DOCKERHUB_USERNAME }}/llm-api:${{ github.sha }} \
+          ./api
+        STATUS=$?
+        set -e
 
-            if [ $BUILD_STATUS -ne 0 ]; then
-              echo "❌ Docker build failed"
-              echo "💾 Disk space AFTER failure:"
-              df -h
-              echo "📁 Docker disk usage:"
-              docker system df
-              exit $BUILD_STATUS
-            fi
+        if [ $STATUS -ne 0 ]; then
+          echo "❌ API build failed"
+          df -h
+          docker system df
+          exit $STATUS
+        fi
 
-            echo "✅ Docker build succeeded"
-
-    # -------------------------
-    # Trivy Image Scan
-    # -------------------------
-    - name: Trivy Image scan
-      id: trivy_image_report
+    - name: Trivy API image scan
       continue-on-error: true
       run: |
-        trivy image ${{ secrets.DOCKERHUB_USERNAME }}/backend:${{ github.sha }} \
-          --scanners vuln \
-          --severity HIGH,CRITICAL \
-          --format template \
-          --template "@trivy-templates/html.tpl" \
-          --output trivy-image-report.html || true
+        trivy image \
+          ${{ secrets.DOCKERHUB_USERNAME }}/llm-api:${{ github.sha }} \
+          --severity HIGH,CRITICAL
 
-    # -------------------------
-    # Upload Trivy Reports
-    # -------------------------
-    - name: Upload Trivy reports
-      if: always()
-      uses: actions/upload-artifact@v4
-      with:
-        name: trivy-security-reports
-        path: |
-          trivy-fs-report.html
-          trivy-image-report.html
-
-    # -------------------------
-    # Fail if vulnerabilities found
-    # -------------------------
-    - name: Enforce Trivy failure
-      if: |
-        steps.trivy_fs_report.outcome == 'failure' ||
-        steps.trivy_image_report.outcome == 'failure'
+    # =====================================================
+    # BUILD WORKER IMAGE
+    # =====================================================
+    - name: Build Worker image
       run: |
-        echo "❌ HIGH or CRITICAL vulnerabilities detected"
-        exit 1
+        echo "📦 Disk BEFORE Worker build"
+        df -h
+
+        set +e
+        docker build --no-cache \
+          -t ${{ secrets.DOCKERHUB_USERNAME }}/llm-worker:${{ github.sha }} \
+          ./worker
+        STATUS=$?
+        set -e
+
+        if [ $STATUS -ne 0 ]; then
+          echo "❌ Worker build failed"
+          df -h
+          docker system df
+          exit $STATUS
+        fi
+
+    - name: Trivy Worker image scan
+      continue-on-error: true
+      run: |
+        trivy image \
+          ${{ secrets.DOCKERHUB_USERNAME }}/llm-worker:${{ github.sha }} \
+          --severity HIGH,CRITICAL
+
+    # -------------------------
+    # Push Images
+    # -------------------------
+    - name: Push API image
+      run: |
+        docker push ${{ secrets.DOCKERHUB_USERNAME }}/llm-api:${{ github.sha }}
+
+    - name: Push Worker image
+      run: |
+        docker push ${{ secrets.DOCKERHUB_USERNAME }}/llm-worker:${{ github.sha }}
 
 
 

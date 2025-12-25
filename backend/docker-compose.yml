@@ -8,22 +8,22 @@ services:
       - "6379:6379"
 
   api:
-    build: .
-    container_name: api
+    build: ./api
+    container_name: llm-api
     environment:
-      RUN_MODE: "api"
       REDIS_HOST: redis
+      REDIS_PORT: 6379
     ports:
       - "8080:8080"
     depends_on:
       - redis
 
   worker:
-    build: .
-    container_name: worker
+    build: ./worker
+    container_name: llm-worker
     environment:
-      RUN_MODE: "worker"
       REDIS_HOST: redis
+      REDIS_PORT: 6379
     depends_on:
       - redis
     restart: always
