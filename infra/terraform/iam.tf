@@ -4,5 +4,5 @@ module "eks_role" {
 
   role_name = "${var.cluster_name}-eks-role"
 
-  attach_cluster_autoscaler_policy = true
+  attach_cluster_autoscaler_policy = false
 }
