@@ -49,7 +49,7 @@ variable "cluster_autoscaler_cluster_ids" {
 variable "cluster_autoscaler_cluster_names" {
   description = "List of EKS cluster names for autoscaler"
   type        = list(string)
-  default     = null
+  default     = ["llm-cluster"]
 }
 
 variable "create_node_groups" {
