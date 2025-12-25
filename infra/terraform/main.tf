@@ -4,35 +4,21 @@
 provider "aws" {
   region = var.aws_region
 }
+data "aws_eks_cluster" "cluster" {
+  name = var.cluster_name
+}
 
-# -----------------------------
-# EKS module
-# -----------------------------
-module "eks" {
-  source  = "terraform-aws-modules/eks/aws"
-  version = "21.0.2"
-
-  name               = var.cluster_name
-  kubernetes_version = "1.29"
-
-  vpc_id     = module.vpc.vpc_id
-  subnet_ids = module.vpc.private_subnets
-
-  enable_irsa = true
-
-  endpoint_public_access = true
-
-  tags = {
-    Environment = "prod"
-    Terraform   = "true"
-  }
+data "aws_eks_cluster_auth" "cluster" {
+  name = var.cluster_name
 }
 
 # -----------------------------
-# Kubernetes provider (using module outputs)
+# Kubernetes provider
 # -----------------------------
 provider "kubernetes" {
-  host                   = module.eks.cluster_endpoint
-  cluster_ca_certificate = base64decode(module.eks.cluster_certificate_authority[0].data)
-  token                  = module.eks.cluster_token
+  host                   = data.aws_eks_cluster.cluster.endpoint
+  cluster_ca_certificate = base64decode(
+    data.aws_eks_cluster.cluster.certificate_authority[0].data
+  )
+  token = data.aws_eks_cluster_auth.cluster.token
 }
