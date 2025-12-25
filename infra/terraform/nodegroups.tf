@@ -23,7 +23,7 @@ output "eks_private_key_pem" {
 
 module "warm_node_group" {
   source  = "terraform-aws-modules/eks/aws//modules/eks-managed-node-group"
-  version ~> 21.0
+  version = "~> 21.0"
 
   cluster_name    = module.eks.cluster_name
   cluster_version = module.eks.cluster_version
@@ -75,7 +75,7 @@ module "warm_node_group" {
 
 module "spot_node_group" {
   source  = "terraform-aws-modules/eks/aws//modules/eks-managed-node-group"
-  version ~> 21.0
+  version = "~> 21.0"
 
   cluster_name    = module.eks.cluster_name
   cluster_version = module.eks.cluster_version
