@@ -11,7 +11,6 @@ module "eks" {
   enable_irsa = true
 
   endpoint_public_access = true
-  cluster_autoscaler_cluster_names = [var.cluster_name]  # add this
 
   tags = {
     Environment = "prod"
