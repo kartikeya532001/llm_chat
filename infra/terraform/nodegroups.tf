@@ -26,6 +26,8 @@ module "warm_node_group" {
 
   cluster_name = module.eks.cluster_name
   name         = "cpu-warm"
+  cluster_service_cidr = var.cluster_service_cidr
+
 
   subnet_ids     = module.vpc.private_subnets
   instance_types = ["r6g.large"]
@@ -75,6 +77,8 @@ module "spot_node_group" {
 
   cluster_name = module.eks.cluster_name
   name         = "cpu-spot"
+  cluster_service_cidr = var.cluster_service_cidr
+
 
   subnet_ids     = module.vpc.private_subnets
   instance_types = ["r6g.xlarge"]

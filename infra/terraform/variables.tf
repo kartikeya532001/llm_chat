@@ -25,7 +25,7 @@ variable "cluster_version" {
 variable "cluster_service_cidr" {
   description = "Cluster service CIDR block (required for node groups)"
   type        = string
-  default     = "172.20.0.0/16"
+  default     = "10.0.0.0/16"
 }
 
 # -----------------------------
