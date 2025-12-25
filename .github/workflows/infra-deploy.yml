@@ -16,66 +16,82 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # -------------------------
+      # Checkout code
+      # -------------------------
       - name: Checkout
         uses: actions/checkout@v4
 
+      # -------------------------
+      # Setup Terraform
+      # -------------------------
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.6.6
 
+      # -------------------------
+      # Configure AWS Credentials
+      # -------------------------
       - name: Configure AWS
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ap-south-1
-      
+
+      # -------------------------
+      # Terraform clean
+      # -------------------------
       - name: Terraform clean
         run: rm -rf .terraform .terraform.lock.hcl
         working-directory: infra/terraform
 
+      # -------------------------
+      # Terraform Init
+      # -------------------------
       - name: Terraform Init
         run: terraform init -upgrade
         working-directory: infra/terraform
 
+      # -------------------------
+      # Terraform Validate
+      # -------------------------
       - name: Terraform Validate
         run: terraform validate
         working-directory: infra/terraform
 
+      # -------------------------
+      # Terraform Plan (Optional Check)
+      # -------------------------
       - name: Terraform Plan
-        run: |
-          export TF_LOG=DEBUG
-          terraform plan -out=tfplan | tee plan.log
+        run: terraform plan -out=tfplan
         working-directory: infra/terraform
 
-      - name: Upload Terraform Plan Log
-        uses: actions/upload-artifact@v4
-        with:
-          name: terraform-plan-log
-          path: infra/terraform/plan.log
-
+      # -------------------------
+      # Terraform Apply
+      # -------------------------
       - name: Terraform Apply
-        run: |
-          export TF_LOG=DEBUG
-          terraform apply -auto-approve tfplan | tee apply.log
+        run: terraform apply -auto-approve tfplan
         working-directory: infra/terraform
 
-      - name: Upload Terraform Apply Log
-        uses: actions/upload-artifact@v4
-        with:
-          name: terraform-apply-log
-          path: infra/terraform/apply.log
-
-      # -----------------------------------
-      # Extract EKS SSH Private Key
-      # -----------------------------------
+      # -------------------------
+      # Export EKS SSH Key
+      # -------------------------
       - name: Export EKS SSH Key
         run: |
-          terraform output -raw eks_private_key_pem > llm-eks-key.pem
-          chmod 400 llm-eks-key.pem
+          # Check if output exists
+          if terraform output -json | jq -e '.eks_private_key_pem.value' >/dev/null; then
+            terraform output -raw eks_private_key_pem > llm-eks-key.pem
+            chmod 400 llm-eks-key.pem
+          else
+            echo "Warning: eks_private_key_pem output not found."
+          fi
         working-directory: infra/terraform
 
+      # -------------------------
+      # Upload SSH Key Artifact
+      # -------------------------
       - name: Upload SSH Key Artifact
         uses: actions/upload-artifact@v4
         with:
