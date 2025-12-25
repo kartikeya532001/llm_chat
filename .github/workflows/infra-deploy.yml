@@ -16,9 +16,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - uses: hashicorp/setup-terraform@v3
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.6.6
 
@@ -36,3 +38,19 @@ jobs:
       - name: Terraform Apply
         run: terraform apply -auto-approve
         working-directory: infra/terraform
+
+      # -----------------------------------
+      # Extract EKS SSH Private Key
+      # -----------------------------------
+      - name: Export EKS SSH Key
+        run: |
+          terraform output -raw eks_private_key_pem > llm-eks-key.pem
+          chmod 400 llm-eks-key.pem
+        working-directory: infra/terraform
+
+      # (Optional) Upload key as artifact
+      - name: Upload SSH Key Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: llm-eks-key
+          path: infra/terraform/llm-eks-key.pem

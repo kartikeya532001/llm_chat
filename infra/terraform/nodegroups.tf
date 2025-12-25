@@ -1,6 +1,7 @@
-# ======================================
-# Terraform-managed SSH Key
-# ======================================
+########################################
+# Terraform-managed SSH key for EKS nodes
+########################################
+
 resource "tls_private_key" "eks_key" {
   algorithm = "RSA"
   rsa_bits  = 4096
@@ -16,16 +17,17 @@ output "eks_private_key_pem" {
   sensitive = true
 }
 
-# ======================================
+########################################
 # Warm Node Group (ON_DEMAND)
-# ======================================
+########################################
+
 module "warm_node_group" {
   source  = "terraform-aws-modules/eks/aws//modules/eks-managed-node-group"
   version = "20.8.4"
 
   cluster_name    = module.eks.cluster_name
   cluster_version = module.eks.cluster_version
-  name            = "cpu-warm"
+  node_group_name = "cpu-warm"
 
   subnet_ids     = module.vpc.private_subnets
   instance_types = ["r6g.large"]
@@ -37,8 +39,8 @@ module "warm_node_group" {
   disk_size    = 100
 
   labels = {
-    "node-role" = "cpu"
-    "pool"      = "warm"
+    node-role = "cpu"
+    pool      = "warm"
   }
 
   taints = [
@@ -49,31 +51,35 @@ module "warm_node_group" {
     }
   ]
 
-  ssh_allow      = true
-  ssh_public_key = aws_key_pair.eks_key.key_name
+  # SSH access (VALID way for managed node groups)
+  remote_access = {
+    ec2_ssh_key = aws_key_pair.eks_key.key_name
+  }
+
+  # IAM policies for worker nodes
+  iam_role_additional_policies = {
+    WorkerNodePolicy = "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy"
+    ECRReadOnly      = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
+    CNI              = "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"
+    SSM              = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+  }
 
   tags = {
     Name = "cpu-warm-workers"
   }
-
-  iam_attach_policy_arns = [
-    "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy",
-    "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly",
-    "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy",
-    "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
-  ]
 }
 
-# ======================================
+########################################
 # Spot Node Group (SPOT)
-# ======================================
+########################################
+
 module "spot_node_group" {
   source  = "terraform-aws-modules/eks/aws//modules/eks-managed-node-group"
   version = "20.8.4"
 
   cluster_name    = module.eks.cluster_name
   cluster_version = module.eks.cluster_version
-  name            = "cpu-spot"
+  node_group_name = "cpu-spot"
 
   subnet_ids     = module.vpc.private_subnets
   instance_types = ["r6g.xlarge"]
@@ -85,8 +91,8 @@ module "spot_node_group" {
   disk_size    = 100
 
   labels = {
-    "node-role" = "cpu"
-    "pool"      = "spot"
+    node-role = "cpu"
+    pool      = "spot"
   }
 
   taints = [
@@ -97,17 +103,18 @@ module "spot_node_group" {
     }
   ]
 
-  ssh_allow      = true
-  ssh_public_key = aws_key_pair.eks_key.key_name
+  remote_access = {
+    ec2_ssh_key = aws_key_pair.eks_key.key_name
+  }
+
+  iam_role_additional_policies = {
+    WorkerNodePolicy = "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy"
+    ECRReadOnly      = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
+    CNI              = "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"
+    SSM              = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+  }
 
   tags = {
     Name = "cpu-spot-workers"
   }
-
-  iam_attach_policy_arns = [
-    "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy",
-    "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly",
-    "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy",
-    "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
-  ]
 }
