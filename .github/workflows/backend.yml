@@ -20,30 +20,43 @@ jobs:
         fetch-depth: 0
 
     # -------------------------
+    # Aggressive disk cleanup (IMPORTANT)
+    # -------------------------
+    - name: Free disk space
+      run: |
+        echo "Before cleanup:"
+        df -h
+
+        sudo rm -rf /usr/share/dotnet
+        sudo rm -rf /usr/local/lib/android
+        sudo rm -rf /opt/ghc
+        sudo rm -rf /usr/local/share/boost
+        sudo rm -rf /usr/share/swift
+        sudo rm -rf /opt/hostedtoolcache
+
+        sudo apt-get clean
+        sudo rm -rf /var/lib/apt/lists/*
+
+        docker system prune -af || true
+
+        echo "After cleanup:"
+        df -h
+
+    # -------------------------
     # Setup Python
     # -------------------------
     - name: Setup Python
       uses: actions/setup-python@v4
       with:
         python-version: 3.11
-        cache: "pip"
 
     # -------------------------
-    # Cleanup disk before install
-    # -------------------------
-    - name: Cleanup disk
-      run: |
-        sudo apt-get clean
-        sudo rm -rf /var/lib/apt/lists/*
-        docker system prune -af || true
-
-    # -------------------------
-    # Install dependencies
+    # Install dependencies (no cache)
     # -------------------------
     - name: Install dependencies
       run: |
         cd backend
-        pip install --upgrade pip
+        python -m pip install --upgrade pip
         if [ -f requirements.txt ]; then
           pip install --no-cache-dir -r requirements.txt
         fi
@@ -62,7 +75,7 @@ jobs:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
     # -------------------------
-    # Install Trivy CLI
+    # Install Trivy
     # -------------------------
     - name: Install Trivy
       run: |
@@ -81,7 +94,7 @@ jobs:
           -o trivy-templates/html.tpl
 
     # -------------------------
-    # Trivy FS Scan (HTML)
+    # Trivy FS Scan
     # -------------------------
     - name: Trivy FS scan
       id: trivy_fs_report
@@ -104,14 +117,33 @@ jobs:
         password: ${{ secrets.DOCKERHUB_TOKEN }}
 
     # -------------------------
-    # Docker Build
+    # Docker Build (NO CACHE)
     # -------------------------
     - name: Build Docker image
       run: |
-        docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/backend:${{ github.sha }} backend
+            echo "📦 Disk space BEFORE docker build:"
+            df -h
+
+            set +e
+            docker build --no-cache \
+              -t ${{ secrets.DOCKERHUB_USERNAME }}/backend:${{ github.sha }} \
+              backend
+            BUILD_STATUS=$?
+            set -e
+
+            if [ $BUILD_STATUS -ne 0 ]; then
+              echo "❌ Docker build failed"
+              echo "💾 Disk space AFTER failure:"
+              df -h
+              echo "📁 Docker disk usage:"
+              docker system df
+              exit $BUILD_STATUS
+            fi
+
+            echo "✅ Docker build succeeded"
 
     # -------------------------
-    # Trivy Image Scan (HTML)
+    # Trivy Image Scan
     # -------------------------
     - name: Trivy Image scan
       id: trivy_image_report
@@ -123,14 +155,6 @@ jobs:
           --format template \
           --template "@trivy-templates/html.tpl" \
           --output trivy-image-report.html || true
-
-    # -------------------------
-    # Verify Reports
-    # -------------------------
-    - name: Verify Trivy reports
-      if: always()
-      run: |
-        ls -lh trivy-*.html
 
     # -------------------------
     # Upload Trivy Reports
@@ -145,7 +169,7 @@ jobs:
           trivy-image-report.html
 
     # -------------------------
-    # Enforce Failure if Vulnerabilities Found
+    # Fail if vulnerabilities found
     # -------------------------
     - name: Enforce Trivy failure
       if: |
@@ -156,15 +180,15 @@ jobs:
         exit 1
 
     # -------------------------
-    # Cleanup Docker after build
+    # Final Docker cleanup
     # -------------------------
-    - name: Cleanup Docker
+    - name: Final cleanup
       if: always()
       run: |
         docker system prune -af || true
 
     # -------------------------
-    # Push Docker Image
+    # Push Docker image
     # -------------------------
     - name: Push Docker image
       if: success()
