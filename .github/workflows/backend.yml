@@ -179,13 +179,7 @@ jobs:
         echo "❌ HIGH or CRITICAL vulnerabilities detected"
         exit 1
 
-    # -------------------------
-    # Final Docker cleanup
-    # -------------------------
-    - name: Final cleanup
-      if: always()
-      run: |
-        docker system prune -af || true
+
 
     # -------------------------
     # Push Docker image
@@ -194,3 +188,11 @@ jobs:
       if: success()
       run: |
         docker push ${{ secrets.DOCKERHUB_USERNAME }}/backend:${{ github.sha }}
+
+        # -------------------------
+    # Final Docker cleanup
+    # -------------------------
+    - name: Final cleanup
+      if: always()
+      run: |
+        docker system prune -af || true
