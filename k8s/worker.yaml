@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: worker
+  namespace: app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: worker
+  template:
+    metadata:
+      labels:
+        app: worker
+    spec:
+      # Schedule on warm pool nodes
+      nodeSelector:
+        pool: warm
+      # Tolerate the warm pool taint
+      tolerations:
+        - key: "warm-pool"
+          operator: "Equal"
+          value: "true"
+          effect: "NoSchedule"
+      containers:
+        - name: worker
+          image: kartikeya532001/worker:latest
+          env:
+            - name: REDIS_HOST
+              value: redis.app.svc.cluster.local
+      imagePullSecrets:
+        - name: regcred

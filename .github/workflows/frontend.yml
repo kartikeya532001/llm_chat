@@ -110,7 +110,7 @@ jobs:
     # -------------------------
     - name: Build Docker image
       run: |
-        docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/chat-app:${{ github.sha }} chat-app
+        docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/chat-app:latest chat-app
 
     # -------------------------
     # Trivy Image Scan (HTML)
@@ -119,7 +119,7 @@ jobs:
       id: trivy_image_report
       continue-on-error: true
       run: |
-        trivy image ${{ secrets.DOCKERHUB_USERNAME }}/chat-app:${{ github.sha }} \
+        trivy image ${{ secrets.DOCKERHUB_USERNAME }}/chat-app:latest \
           --scanners vuln \
           --severity HIGH,CRITICAL \
           --format template \
@@ -163,4 +163,4 @@ jobs:
     - name: Push Docker image
       if: success()
       run: |
-        docker push ${{ secrets.DOCKERHUB_USERNAME }}/chat-app:${{ github.sha }}
+        docker push ${{ secrets.DOCKERHUB_USERNAME }}/chat-app:latest

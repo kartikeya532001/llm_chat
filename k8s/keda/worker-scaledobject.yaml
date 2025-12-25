@@ -1,0 +1,27 @@
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: llm-worker-scaledobject
+  namespace: llm
+spec:
+  scaleTargetRef:
+    name: llm-worker-spot
+  pollingInterval: 5
+  cooldownPeriod: 30
+  minReplicaCount: 0
+  maxReplicaCount: 3
+  triggers:
+    # High priority queue: scale aggressively
+    - type: redis
+      metadata:
+        address: redis-master:6379
+        listName: queue:high
+        listLength: "1"            # scale when even 1 job is in high queue
+        activationThreshold: "1"   # ensures scaling starts immediately
+    # Normal priority queue: scale only if backlog is bigger
+    - type: redis
+      metadata:
+        address: redis-master:6379
+        listName: queue:normal
+        listLength: "5"            # scale when backlog > 5
+        activationThreshold: "5"   # ensures small queues don’t trigger scaling
