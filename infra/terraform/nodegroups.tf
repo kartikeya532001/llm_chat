@@ -30,8 +30,10 @@ module "warm_node_group" {
 
 
   subnet_ids     = module.vpc.private_subnets
-  instance_types = ["r6g.large"]
+  instance_types = ["m7i-flex.large"]
   capacity_type  = "ON_DEMAND"
+  ami_type = "AL2023_x86_64_STANDARD"
+  kubernetes_version  = var.cluster_version
 
   min_size     = 1
   max_size     = 1
@@ -42,15 +44,6 @@ module "warm_node_group" {
     node-role = "cpu"
     pool      = "warm"
   }
-
-  taints = {
-    warm_pool = {
-      key    = "warm-pool"
-      value  = "true"
-      effect = "NO_SCHEDULE"
-    }
-  }
-
 
   iam_role_additional_policies = {
     WorkerNodePolicy = "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy"
@@ -78,8 +71,12 @@ module "spot_node_group" {
 
 
   subnet_ids     = module.vpc.private_subnets
-  instance_types = ["r6g.xlarge"]
+  instance_types = ["m7i-flex.large"]
   capacity_type  = "SPOT"
+  ami_type = "AL2023_x86_64_STANDARD"
+  kubernetes_version  = var.cluster_version 
+
+
 
   min_size     = 0
   max_size     = 3
