@@ -7,13 +7,16 @@ on:
       - "infra/**"
   pull_request:
     branches: [ master ]
-    paths: 
+    paths:
       - "infra/**"
   workflow_dispatch:
 
 jobs:
   terraform:
     runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
 
     steps:
       # -------------------------
@@ -29,11 +32,12 @@ jobs:
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.6.6
+          terraform_wrapper: false
 
       # -------------------------
       # Configure AWS Credentials
       # -------------------------
-      - name: Configure AWS
+      - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -41,68 +45,55 @@ jobs:
           aws-region: ap-south-1
 
       # -------------------------
-      # Terraform Init
+      # Terraform Init (REMOTE STATE)
       # -------------------------
       - name: Terraform Init
-        run: terraform init -upgrade
         working-directory: infra/terraform
-      - name : Terraform Destory
-        run : terraform destroy -auto-approve
-        working-directory: infra/terraform
-
-      # -------------------------
-      # Terraform clean
-      # -------------------------
-      - name: Terraform clean
-        run: rm -rf .terraform .terraform.lock.hcl
-        working-directory: infra/terraform
-
-      # -------------------------
-      # Terraform Init
-      # -------------------------
-      - name: Terraform Init
-        run: terraform init -upgrade
-        working-directory: infra/terraform
+        run: |
+          terraform init \
+            -reconfigure \
+            -upgrade
 
       # -------------------------
       # Terraform Validate
       # -------------------------
       - name: Terraform Validate
-        run: terraform validate
         working-directory: infra/terraform
+        run: terraform validate
 
       # -------------------------
-      # Terraform Plan (Optional Check)
+      # Terraform Plan
       # -------------------------
       - name: Terraform Plan
-        run: terraform plan -out=tfplan
         working-directory: infra/terraform
+        run: terraform plan -out=tfplan
 
       # -------------------------
-      # Terraform Apply
+      # Terraform Apply (only on master)
       # -------------------------
       - name: Terraform Apply
-        run: terraform apply -auto-approve tfplan
+        if: github.ref == 'refs/heads/master'
         working-directory: infra/terraform
+        run: terraform apply -auto-approve tfplan
 
       # -------------------------
-      # Export EKS SSH Key
+      # Export EKS SSH Key (if exists)
       # -------------------------
       - name: Export EKS SSH Key
+        working-directory: infra/terraform
         run: |
-          # Check if output exists
           if terraform output -json | jq -e '.eks_private_key_pem.value' >/dev/null; then
             terraform output -raw eks_private_key_pem > llm-eks-key.pem
             chmod 400 llm-eks-key.pem
           else
-            echo "Warning: eks_private_key_pem output not found."
+            echo "eks_private_key_pem output not found – skipping"
           fi
-        working-directory: infra/terraform
 
       # -------------------------
       # Upload SSH Key Artifact
       # -------------------------
       - name: Upload SSH Key Artifact
+        if: github.ref == 'refs/heads/master'
         uses: actions/upload-artifact@v4
         with:
           name: llm-eks-key

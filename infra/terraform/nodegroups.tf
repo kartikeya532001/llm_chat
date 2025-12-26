@@ -100,6 +100,7 @@ module "spot_node_group" {
   }
 
 
+
   iam_role_additional_policies = {
     WorkerNodePolicy = "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy"
     ECRReadOnly      = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
