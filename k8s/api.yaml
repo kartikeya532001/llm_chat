@@ -22,7 +22,7 @@ spec:
           effect: "NoSchedule"
       containers:
         - name: api
-          image: kartikeya532001/api:latest
+          image: kartikeya532001/llm-api:latest
           imagePullPolicy: Always
 
           ports:

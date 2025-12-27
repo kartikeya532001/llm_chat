@@ -23,7 +23,7 @@ spec:
           effect: "NoSchedule"
       containers:
         - name: frontend
-          image: kartikeya532001/frontend:latest
+          image: kartikeya532001/chat-app:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 80

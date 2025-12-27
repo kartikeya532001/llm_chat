@@ -24,7 +24,7 @@ spec:
           effect: "NoSchedule"
       containers:
         - name: worker
-          image: kartikeya532001/worker:latest
+          image: kartikeya532001/llm-worker:latest
           imagePullPolicy: Always
           env:
             - name: REDIS_HOST
