@@ -1,11 +1,11 @@
-name: Deploy LLM Worker to EKS with KEDA
+name: Deploy Application to EKS with KEDA
 
 on:
   push:
     branches:
       - master
     paths:
-      - "k8s1/**"
+      - "k8s/**"
   workflow_dispatch:
 
 jobs:
@@ -54,7 +54,7 @@ jobs:
             --docker-username=kartikeya532001 \
             --docker-password=${{ secrets.DOCKERHUB_TOKEN }} \
             --docker-email=youremail@example.com \
-            -n llm \
+            -n app \
             --dry-run=client -o yaml | kubectl apply -f -
 
       # -------------------------
@@ -76,10 +76,11 @@ jobs:
       - name: Deploy manifests
         run: |
           kubectl apply -f k8s/namespace.yaml
+          kubectl apply -f k8s/ingress.yaml
           kubectl apply -f k8s/redis.yaml
           kubectl apply -f k8s/api.yaml
           kubectl apply -f k8s/worker.yaml
-          kubectl apply -f k8s/forntend.yaml
+          kubectl apply -f k8s/frontend.yaml
           kubectl apply -f k8s/spot.yaml
           kubectl apply -f k8s/keda/worker-scaledobject.yaml
 
@@ -88,4 +89,4 @@ jobs:
       # -------------------------
       - name: Check Deployment Rollout
         run: |
-          kubectl rollout status deployment/llm-worker-spot -n llm
+          kubectl rollout status deployment/llm-worker-spot -n app
