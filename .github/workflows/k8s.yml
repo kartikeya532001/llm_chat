@@ -103,5 +103,9 @@ jobs:
           kubectl get deployments -n app
           kubectl get services -n app
           kubectl get ingress -n app
+          kubectl describe deployment api -n app
+          kubectl describe deployment frontend -n app
+          kubectl describe deployment worker -n app
+
 
 
