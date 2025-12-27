@@ -7,10 +7,7 @@ metadata:
     kubernetes.io/ingress.class: alb
     alb.ingress.kubernetes.io/scheme: internet-facing
     alb.ingress.kubernetes.io/target-type: ip
-
     alb.ingress.kubernetes.io/listen-ports: '[{"HTTP":80}]'
-    alb.ingress.kubernetes.io/healthcheck-path: /
-    alb.ingress.kubernetes.io/success-codes: "200-399"
 spec:
   ingressClassName: alb
   rules:
@@ -23,6 +20,17 @@ spec:
                 name: frontend
                 port:
                   number: 80
+            # Health check path for this backend
+            # Uses ALB Controller syntax to set target group attributes
+            # Note: attribute names must be comma-separated key=value
+            backend:
+              service:
+                name: frontend
+                port:
+                  number: 80
+            # Optional: target group specific attributes
+            # https://kubernetes-sigs.github.io/aws-load-balancer-controller/v2.5/guide/ingress/annotations/#target-group-attributes
+            # alb.ingress.kubernetes.io/target-group-attributes: stickiness.enabled=true,stickiness.lb_cookie.duration_seconds=60
           - path: /api
             pathType: Prefix
             backend:
@@ -30,3 +38,6 @@ spec:
                 name: api
                 port:
                   number: 8000
+            # Per-backend health check annotation
+            alb.ingress.kubernetes.io/healthcheck-path: /health
+            alb.ingress.kubernetes.io/target-group-attributes: deregistration_delay.timeout_seconds=30,slow_start.duration_seconds=30

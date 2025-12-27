@@ -53,8 +53,6 @@ kind: Service
 metadata:
   name: api
   namespace: app
-  annotations:
-    alb.ingress.kubernetes.io/healthcheck-path: /health
 spec:
   selector:
     app: api
