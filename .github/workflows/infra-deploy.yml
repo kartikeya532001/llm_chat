@@ -74,27 +74,27 @@ jobs:
       - name: Terraform Apply
         if: github.ref == 'refs/heads/master'
         working-directory: infra/terraform
-        run: terraform destroy -auto-approve
+        run: terraform apply -auto-approve tfplan
 
       # -------------------------
       # Export EKS SSH Key (if exists)
       # -------------------------
-      # - name: Export EKS SSH Key
-      #   working-directory: infra/terraform
-      #   run: |
-      #     if terraform output -json | jq -e '.eks_private_key_pem.value' >/dev/null; then
-      #       terraform output -raw eks_private_key_pem > llm-eks-key.pem
-      #       chmod 400 llm-eks-key.pem
-      #     else
-      #       echo "eks_private_key_pem output not found – skipping"
-      #     fi
+      - name: Export EKS SSH Key
+        working-directory: infra/terraform
+        run: |
+          if terraform output -json | jq -e '.eks_private_key_pem.value' >/dev/null; then
+            terraform output -raw eks_private_key_pem > llm-eks-key.pem
+            chmod 400 llm-eks-key.pem
+          else
+            echo "eks_private_key_pem output not found – skipping"
+          fi
 
-      # # -------------------------
-      # # Upload SSH Key Artifact
-      # # -------------------------
-      # - name: Upload SSH Key Artifact
-      #   if: github.ref == 'refs/heads/master'
-      #   uses: actions/upload-artifact@v4
-      #   with:
-      #     name: llm-eks-key
-      #     path: infra/terraform/llm-eks-key.pem
+      # -------------------------
+      # Upload SSH Key Artifact
+      # -------------------------
+      - name: Upload SSH Key Artifact
+        if: github.ref == 'refs/heads/master'
+        uses: actions/upload-artifact@v4
+        with:
+          name: llm-eks-key
+          path: infra/terraform/llm-eks-key.pem
