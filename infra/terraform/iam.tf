@@ -1,3 +1,6 @@
+# -------------------------
+# IAM Role for Cluster Autoscaler
+# -------------------------
 module "eks_role" {
   source  = "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts-eks"
   version = "5.39.0"
@@ -17,4 +20,77 @@ module "eks_role" {
   }
 
   depends_on = [module.eks]
+}
+
+# -------------------------
+# IAM Policy for ALB Controller
+# -------------------------
+resource "aws_iam_policy" "alb_controller" {
+  name        = "AWSLoadBalancerControllerIAMPolicy"
+  description = "IAM policy for AWS Load Balancer Controller"
+  policy      = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "acm:DescribeCertificate",
+          "acm:ListCertificates",
+          "acm:GetCertificate",
+          "ec2:AuthorizeSecurityGroupIngress",
+          "ec2:RevokeSecurityGroupIngress",
+          "ec2:CreateSecurityGroup",
+          "ec2:DeleteSecurityGroup",
+          "ec2:Describe*",
+          "elasticloadbalancing:*",
+          "iam:ListServerCertificates",
+          "iam:GetServerCertificate",
+          "cognito-idp:DescribeUserPoolClient",
+          "waf:GetWebACL",
+          "waf:ListWebACLs",
+          "wafv2:GetWebACL",
+          "wafv2:ListWebACLs",
+          "shield:GetSubscriptionState",
+          "shield:DescribeProtection",
+          "shield:CreateProtection",
+          "shield:DeleteProtection",
+          "shield:DescribeSubscription"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+}
+
+# -------------------------
+# IAM Role for ALB Controller (separate from cluster-autoscaler)
+# -------------------------
+resource "aws_iam_role" "alb_controller" {
+  name = "${var.cluster_name}-alb-controller"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Principal = {
+          Federated = module.eks.oidc_provider_arn
+        }
+        Action = "sts:AssumeRoleWithWebIdentity"
+        Condition = {
+          StringEquals = {
+            "${replace(module.eks.oidc_provider_arn, "https://", "")}:sub" = "system:serviceaccount:kube-system:aws-load-balancer-controller"
+          }
+        }
+      }
+    ]
+  })
+}
+
+# -------------------------
+# Attach ALB Policy to ALB Role
+# -------------------------
+resource "aws_iam_role_policy_attachment" "alb_controller" {
+  role       = aws_iam_role.alb_controller.name
+  policy_arn = aws_iam_policy.alb_controller.arn
 }

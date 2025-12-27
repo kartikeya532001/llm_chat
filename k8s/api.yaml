@@ -24,7 +24,6 @@ spec:
         - name: api
           image: kartikeya532001/llm-api:latest
           imagePullPolicy: Always
-
           ports:
             - containerPort: 8000
           env:
@@ -32,8 +31,22 @@ spec:
               value: redis.app.svc.cluster.local
             - name: REDIS_PORT
               value: "6379"
+
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 5
+
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 20
+            periodSeconds: 10
       imagePullSecrets:
-       - name: regcred
+        - name: regcred
 ---
 apiVersion: v1
 kind: Service

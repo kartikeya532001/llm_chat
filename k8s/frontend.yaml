@@ -15,7 +15,6 @@ spec:
     spec:
       nodeSelector:
         pool: warm
-      # Tolerate the warm pool taint
       tolerations:
         - key: "warm-pool"
           operator: "Equal"
@@ -27,6 +26,20 @@ spec:
           imagePullPolicy: Always
           ports:
             - containerPort: 80
+
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 5
+
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 15
+            periodSeconds: 10
       imagePullSecrets:
         - name: regcred
 ---

@@ -13,10 +13,8 @@ spec:
       labels:
         app: worker
     spec:
-      # Schedule on warm pool nodes
       nodeSelector:
         pool: warm
-      # Tolerate the warm pool taint
       tolerations:
         - key: "warm-pool"
           operator: "Equal"

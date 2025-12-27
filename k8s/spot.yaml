@@ -15,7 +15,6 @@ spec:
     spec:
       nodeSelector:
         pool: spot
-      # Tolerate the warm pool taint
       tolerations:
         - key: "spot-pool"
           operator: "Equal"
