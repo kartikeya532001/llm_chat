@@ -102,13 +102,14 @@ jobs:
           kubectl rollout status deployment/llm-worker-spot -n app
           kubectl get deployments -n app
           kubectl get services -n app
+          kubectl get endpoints -n app
           kubectl get ingress -n app
           kubectl get pods -n app
           kubectl get deployment -n kube-system
-          kubectl get deployment -n kube-system aws-load-balancer-controller
-          kubectl logs deployment/aws-load-balancer-controller -n kube-system
           kubectl get crd | grep ingress
           kubectl get ingressclass
+          kubectl describe ingress app-ingress -n app
+
 
 
 
