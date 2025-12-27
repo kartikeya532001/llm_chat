@@ -35,17 +35,27 @@ resource "aws_iam_policy" "alb_controller" {
         Effect = "Allow"
         Action = [
           "acm:DescribeCertificate",
+          "iam:CreateServiceLinkedRole",
+          "ec2:GetSecurityGroupsForVpc",
+          "iam:GetRole",
+          "tag:GetResources",
           "acm:ListCertificates",
           "acm:GetCertificate",
+          "tag:GetTags",
+          "ec2:CreateTags",              
           "ec2:AuthorizeSecurityGroupIngress",
           "ec2:RevokeSecurityGroupIngress",
           "ec2:CreateSecurityGroup",
           "ec2:DeleteSecurityGroup",
           "ec2:Describe*",
+          "ec2:DeleteTags",
+          "iam:ListRoles",
           "elasticloadbalancing:*",
           "iam:ListServerCertificates",
           "iam:GetServerCertificate",
           "cognito-idp:DescribeUserPoolClient",
+          "waf-regional:GetWebACLForResource",
+          "wafv2:GetWebACLForResource",
           "waf:GetWebACL",
           "waf:ListWebACLs",
           "wafv2:GetWebACL",
@@ -79,7 +89,7 @@ resource "aws_iam_role" "alb_controller" {
         Action = "sts:AssumeRoleWithWebIdentity"
         Condition = {
           StringEquals = {
-            "${replace(module.eks.oidc_provider_arn, "https://", "")}:sub" = "system:serviceaccount:kube-system:aws-load-balancer-controller"
+            "${replace(module.eks.oidc_provider_arn, "arn:aws:iam::996596548896:oidc-provider/", "")}:sub" = "system:serviceaccount:kube-system:aws-load-balancer-controller"
           }
         }
       }

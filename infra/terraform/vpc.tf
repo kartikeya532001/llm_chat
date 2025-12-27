@@ -19,4 +19,15 @@ module "vpc" {
     Terraform = "true"
     Project   = "llm-platform"
   }
+
+  # Kubernetes-specific tags
+  public_subnet_tags = {
+    "kubernetes.io/role/elb"                   = "1"
+    "kubernetes.io/cluster/${var.cluster_name}" = "shared"
+  }
+
+  private_subnet_tags = {
+    "kubernetes.io/role/internal-elb"          = "1"
+    "kubernetes.io/cluster/${var.cluster_name}" = "shared"
+  }
 }

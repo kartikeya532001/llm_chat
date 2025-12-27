@@ -1,138 +1,114 @@
-name: Deploy Application to EKS with KEDA
+name: Deploy Application to EKS with KEDA & ALB
 
 on:
   push:
-    branches:
-      - master
+    branches: [ master ]
   workflow_dispatch:
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     env:
-      IMAGE_TAG: latest
       AWS_REGION: ap-south-1
+      CLUSTER_NAME: llm-cluster
 
     steps:
-      # -------------------------
-      # Checkout repository
-      # -------------------------
-      - name: Checkout code
-        uses: actions/checkout@v3
+    # -------------------------
+    # Checkout
+    # -------------------------
+    - name: Checkout repository
+      uses: actions/checkout@v3
 
-      # -------------------------
-      # Log in to Docker Hub
-      # -------------------------
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v2
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+    # -------------------------
+    # AWS Credentials
+    # -------------------------
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v3
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
 
-      # -------------------------
-      # Configure AWS CLI & kubeconfig
-      # -------------------------
-      - name: Configure AWS CLI
-        uses: aws-actions/configure-aws-credentials@v3
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_REGION }}
+    # -------------------------
+    # kubectl
+    # -------------------------
+    - name: Install kubectl
+      run: |
+        curl -LO https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl
+        chmod +x kubectl
+        sudo mv kubectl /usr/local/bin/
 
-      - name: Install kubectl
-        run: |
-          curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
-          chmod +x kubectl
-          sudo mv kubectl /usr/local/bin/
-          kubectl version --client
+    - name: Update kubeconfig
+      run: aws eks update-kubeconfig --name $CLUSTER_NAME --region $AWS_REGION
 
-      - name: Update kubeconfig
-        run: aws eks update-kubeconfig --name llm-cluster --region ${{ env.AWS_REGION }}
+    # -------------------------
+    # Namespaces
+    # -------------------------
+    - name: Apply namespaces
+      run: kubectl apply -f k8s/namespaces.yaml
 
-      # -------------------------
-      # Create Docker pull secret
-      # -------------------------
-      - name: Create Docker pull secret
-        working-directory: k8s
-        run: |
-          kubectl apply -f namespaces.yaml
-          kubectl create secret docker-registry regcred \
-            --docker-server=https://index.docker.io/v1/ \
-            --docker-username=kartikeya532001 \
-            --docker-password=${{ secrets.DOCKERHUB_TOKEN }} \
-            --docker-email=youremail@example.com \
-            -n app \
-            --dry-run=client -o yaml | kubectl apply -f -
+    # -------------------------
+    # Docker Pull Secret
+    # -------------------------
+    - name: Create Docker registry secret
+      run: |
+        kubectl create secret docker-registry regcred \
+          --docker-server=https://index.docker.io/v1/ \
+          --docker-username=${{ secrets.DOCKERHUB_USERNAME }} \
+          --docker-password=${{ secrets.DOCKERHUB_TOKEN }} \
+          --docker-email=youremail@example.com \
+          -n app \
+          --dry-run=client -o yaml | kubectl apply -f -
 
-      # -------------------------
-      # Install KEDA
-      # -------------------------
-      - name: Install KEDA
-        run: |
-          kubectl get namespace keda || kubectl apply -f https://github.com/kedacore/keda/releases/download/v2.18.3/keda-2.18.3.yaml
+    # -------------------------
+    # Install KEDA
+    # -------------------------
+    - name: Install KEDA
+      run: |
+        kubectl get ns keda || \
+        kubectl apply -f https://github.com/kedacore/keda/releases/download/v2.18.3/keda-2.18.3.yaml
 
-      # -------------------------
-      # Install AWS Load Balancer Controller
-      # -------------------------
-      - name: Install AWS Load Balancer Controller
-        run: |
-          kubectl apply -f https://github.com/kubernetes-sigs/aws-load-balancer-controller/releases/download/v2.17.0/v2_17_0_full.yaml
-          kubectl apply -f https://github.com/kubernetes-sigs/aws-load-balancer-controller/releases/download/v2.17.0/v2_17_0_ingclass.yaml
-          kubectl annotate serviceaccount aws-load-balancer-controller \
-            -n kube-system \
-            eks.amazonaws.com/role-arn=arn:aws:iam::996596548896:role/llm-cluster-alb-controller \
-            --overwrite
+    # -------------------------
+    # AWS Load Balancer Controller (YOUR YAML)
+    # -------------------------
+    - name: Install AWS Load Balancer Controller
+      run: |
+        openssl req -x509 -nodes -days 365 -newkey rsa:2048   -keyout tls.key   -out tls.crt   -subj "/CN=aws-load-balancer-webhook.kube-system.svc"
+        kubectl -n kube-system create secret tls aws-load-balancer-webhook-tls   --cert=tls.crt   --key=tls.key
+        kubectl apply -f k8s/aws-load-balancer-controller.yml
+        kubectl rollout status deployment/aws-load-balancer-controller -n kube-system
 
-      # -------------------------
-      # Deploy Cluster Autoscaler
-      # -------------------------
-      - name: Deploy Cluster Autoscaler
-        run: |
-          kubectl apply -f https://raw.githubusercontent.com/kubernetes/autoscaler/master/cluster-autoscaler/cloudprovider/aws/examples/cluster-autoscaler-autodiscover.yaml
-          kubectl -n kube-system patch deployment cluster-autoscaler --type json -p='[
-            {
-              "op": "replace",
-              "path": "/spec/template/spec/containers/0/command",
-              "value": [
-                "./cluster-autoscaler",
-                "--cloud-provider=aws",
-                "--namespace=kube-system",
-                "--cluster-name=llm-cluster",
-                "--node-group-auto-discovery=asg:tag=k8s.io/cluster-autoscaler/enabled,k8s.io/cluster-autoscaler/llm-cluster",
-                "--balance-similar-node-groups",
-                "--skip-nodes-with-local-storage=false",
-                "--skip-nodes-with-system-pods=false"
-              ]
-            }
-          ]'
-          kubectl -n kube-system annotate serviceaccount cluster-autoscaler \
-            eks.amazonaws.com/role-arn=arn:aws:iam::996596548896:role/llm-cluster-cluster-autoscaler \
-            --overwrite
-          kubectl -n kube-system set env deployment/cluster-autoscaler AWS_REGION=${{ env.AWS_REGION }}
-          
-      # -------------------------
-      # Deploy Kubernetes manifests
-      # -------------------------
-      - name: Deploy manifests
-        working-directory: k8s
-        run: |
-          kubectl apply -f ingress.yaml
-          kubectl apply -f redis.yaml
-          kubectl apply -f api.yaml
-          kubectl apply -f worker.yaml
-          kubectl apply -f frontend.yaml
-          kubectl apply -f spot.yaml
-          kubectl apply -f keda/worker-scaledobject.yaml
-          kubectl apply -f service_account.yaml
+    # -------------------------
+    # Cluster Autoscaler
+    # -------------------------
+    - name: Install Cluster Autoscaler
+      run: |
+        kubectl apply -f k8s/cluster-autoscaler.yaml
+        kubectl rollout status deployment/cluster-autoscaler -n kube-system
 
-      # -------------------------
-      # Check deployment rollout
-      # -------------------------
-      - name: Check Deployment Rollout
-        run: |
-          kubectl rollout status deployment/llm-worker-spot -n app
-          kubectl get deployments -n app
-          kubectl get services -n app
-          kubectl get endpoints -n app
-          kubectl get ingress -n app
-          kubectl get pods -n app
+    # -------------------------
+    # Deploy Application
+    # -------------------------
+    - name: Deploy application manifests
+      run: |
+        kubectl apply -f k8s/redis.yaml
+        kubectl apply -f k8s/api.yaml
+        kubectl apply -f k8s/worker.yaml
+        kubectl apply -f k8s/frontend.yaml
+        kubectl apply -f k8s/spot.yaml
+        kubectl apply -f k8s/keda/worker-scaledobject.yaml
+
+    # -------------------------
+    # Ingress LAST
+    # -------------------------
+    - name: Deploy Ingress
+      run: kubectl apply -f k8s/ingress.yaml
+
+    # -------------------------
+    # Verification
+    # -------------------------
+    - name: Verify deployment
+      run: |
+        kubectl get pods -n app
+        kubectl get ingress -n app
+        kubectl get svc -n app
