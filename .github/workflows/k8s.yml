@@ -100,3 +100,8 @@ jobs:
       - name: Check Deployment Rollout
         run: |
           kubectl rollout status deployment/llm-worker-spot -n app
+          kubectl get deployments -n app
+          kubectl get services -n app
+          kubectl get ingress -n app
+
+
