@@ -23,21 +23,26 @@ const ChatApp = () => {
     addMessage(question, "user");
 
     try {
-      const res = await axios.post("http://localhost:8080/chat", {
+      const res = await axios.post("/api/chat", {
         text: question,
         priority: "normal",
       });
 
-      const newJob = { job_id: res.data.job_id, question, status: "queued" };
+      const newJob = {
+        job_id: res.data.job_id,
+        question,
+        status: "queued",
+      };
+
       setJobs((prev) => [...prev, newJob]);
       setQuestion("");
     } catch (err) {
       console.error(err);
-      addMessage("Error sending question. Check console.", "bot");
+      addMessage("Error sending question. Please try again.", "bot");
     }
   };
 
-  // Polling for jobs
+  // Polling for job results
   useEffect(() => {
     const interval = setInterval(async () => {
       const pendingJobs = jobs.filter((j) => j.status !== "done");
@@ -46,10 +51,12 @@ const ChatApp = () => {
       const updates = await Promise.all(
         pendingJobs.map(async (job) => {
           try {
-            const res = await axios.get(
-              `http://localhost:8080/result/${job.job_id}`
-            );
-            return { ...job, status: res.data.status, response: res.data.response };
+            const res = await axios.get(`/api/result/${job.job_id}`);
+            return {
+              ...job,
+              status: res.data.status,
+              response: res.data.response,
+            };
           } catch {
             return job;
           }
@@ -86,8 +93,7 @@ const ChatApp = () => {
         alignItems: "center",
         justifyContent: "flex-start",
         p: 3,
-        background:
-          "linear-gradient(135deg, #74ebd5 0%, #ACB6E5 100%)",
+        background: "linear-gradient(135deg, #74ebd5 0%, #ACB6E5 100%)",
       }}
     >
       <Box
@@ -123,5 +129,3 @@ const ChatApp = () => {
 };
 
 export default ChatApp;
-
-

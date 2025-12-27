@@ -91,7 +91,7 @@ module "warm_node_group" {
     spot = {
       key    = "warm-pool"
       value  = "true"
-      effect = "NoSchedule"
+      effect = "NO_SCHEDULE"
     }
   }
 
@@ -142,7 +142,7 @@ module "spot_node_group" {
     spot = {
       key    = "spot"
       value  = "true"
-      effect = "PreferNoSchedule"
+      effect = "PREFER_NO_SCHEDULE"
     }
   }
 
