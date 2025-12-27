@@ -48,8 +48,9 @@ jobs:
       # Create Docker pull secret
       # -------------------------
       - name: Create Docker pull secret
+        working-directory: k8s
         run: |
-          kubectl apply -f k8s/namespace.yaml
+          kubectl apply -f namespace.yaml
           kubectl create secret docker-registry regcred \
             --docker-server=https://index.docker.io/v1/ \
             --docker-username=kartikeya532001 \
@@ -75,14 +76,15 @@ jobs:
       # Deploy Kubernetes manifests
       # -------------------------
       - name: Deploy manifests
+        working-directory: k8s
         run: |
-          kubectl apply -f k8s/ingress.yaml
-          kubectl apply -f k8s/redis.yaml
-          kubectl apply -f k8s/api.yaml
-          kubectl apply -f k8s/worker.yaml
-          kubectl apply -f k8s/frontend.yaml
-          kubectl apply -f k8s/spot.yaml
-          kubectl apply -f k8s/keda/worker-scaledobject.yaml
+          kubectl apply -f ingress.yaml
+          kubectl apply -f redis.yaml
+          kubectl apply -f api.yaml
+          kubectl apply -f worker.yaml
+          kubectl apply -f frontend.yaml
+          kubectl apply -f spot.yaml
+          kubectl apply -f keda/worker-scaledobject.yaml
 
       # -------------------------
       # Check deployment rollout
