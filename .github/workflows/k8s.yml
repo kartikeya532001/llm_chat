@@ -91,9 +91,28 @@ jobs:
     # -------------------------
     - name: Install Cluster Autoscaler
       run: |
-        kubectl apply -f k8s/cluster-autoscaler.yaml
-        kubectl rollout status deployment/cluster-autoscaler -n kube-system
-
+        kubectl apply -f https://raw.githubusercontent.com/kubernetes/autoscaler/master/cluster-autoscaler/cloudprovider/aws/examples/cluster-autoscaler-autodiscover.yaml
+          kubectl -n kube-system patch deployment cluster-autoscaler --type json -p='[
+            {
+              "op": "replace",
+              "path": "/spec/template/spec/containers/0/command",
+              "value": [
+                "./cluster-autoscaler",
+                "--cloud-provider=aws",
+                "--namespace=kube-system",
+                "--cluster-name=llm-cluster",
+                "--node-group-auto-discovery=asg:tag=k8s.io/cluster-autoscaler/enabled,k8s.io/cluster-autoscaler/llm-cluster",
+                "--balance-similar-node-groups",
+                "--skip-nodes-with-local-storage=false",
+                "--skip-nodes-with-system-pods=false"
+              ]
+            }
+          ]'
+          kubectl -n kube-system annotate serviceaccount cluster-autoscaler \
+            eks.amazonaws.com/role-arn=arn:aws:iam::996596548896:role/llm-cluster-cluster-autoscaler \
+            --overwrite
+          kubectl -n kube-system set env deployment/cluster-autoscaler AWS_REGION=${{ env.AWS_REGION }}
+          
     # -------------------------
     # Deploy Application
     # -------------------------
