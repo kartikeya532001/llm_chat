@@ -20,7 +20,7 @@ spec:
         - key: "spot-pool"
           operator: "Equal"
           value: "true"
-          effect: "PREFER_NO_SCHEDULE"
+          effect: "PreferNoSchedule"
       containers:
         - name: worker
           image: kartikeya532001/llm-worker:latest
