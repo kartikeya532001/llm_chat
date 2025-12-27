@@ -105,6 +105,6 @@ jobs:
           kubectl get ingress -n app
           kubectl get pods -n app
           kubectl get secret regcred -n app
-          kubectl describe pod api-5c7cf545bf-4bj5d -n app
+          kubectl describe pod worker-5448f5c79d-hghsb -n app
 
 
