@@ -37,3 +37,7 @@ def result(job_id: str):
     if not res:
         return {"job_id": job_id, "status": "processing"}
     return {"job_id": job_id, "status": "done", "response": res}
+
+@app.get("/health")
+def health():
+    return {"status": "ok"}
