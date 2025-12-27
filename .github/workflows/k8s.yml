@@ -74,6 +74,7 @@ jobs:
     - name: Install AWS Load Balancer Controller
       run: |
         if ! kubectl get secret aws-load-balancer-webhook-tls -n kube-system >/dev/null 2>&1; then
+          openssl req -x509 -nodes -days 365 -newkey rsa:2048   -keyout tls.key   -out tls.crt   -subj "/CN=aws-load-balancer-webhook.kube-system.svc"
           kubectl create secret tls aws-load-balancer-webhook-tls \
           --cert=tls.crt \
           --key=tls.key \
