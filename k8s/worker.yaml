@@ -25,8 +25,11 @@ spec:
       containers:
         - name: worker
           image: kartikeya532001/worker:latest
+          imagePullPolicy: Always
           env:
             - name: REDIS_HOST
               value: redis.app.svc.cluster.local
+            - name: REDIS_PORT
+              value: "6379"
       imagePullSecrets:
         - name: regcred

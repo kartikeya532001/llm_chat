@@ -4,11 +4,11 @@ on:
   push:
     branches: [ master ]
     paths:
-      - "backend/**"
+      - "backend1/**"
   pull_request:
     branches: [ master ]
     paths:
-      - "backend/**" 
+      - "backend1/**" 
 
 jobs:
   backend-ci:

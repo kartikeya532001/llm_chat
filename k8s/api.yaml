@@ -4,7 +4,7 @@ metadata:
   name: api
   namespace: app
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: api
@@ -13,14 +13,25 @@ spec:
       labels:
         app: api
     spec:
+      nodeSelector:
+        pool: warm
+      tolerations:
+        - key: "warm-pool"
+          operator: "Equal"
+          value: "true"
+          effect: "NoSchedule"
       containers:
         - name: api
           image: kartikeya532001/api:latest
+          imagePullPolicy: Always
+
           ports:
             - containerPort: 8000
           env:
             - name: REDIS_HOST
               value: redis.app.svc.cluster.local
+            - name: REDIS_PORT
+              value: "6379"
       imagePullSecrets:
        - name: regcred
 ---

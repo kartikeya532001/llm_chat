@@ -13,11 +13,33 @@ spec:
       labels:
         app: redis
     spec:
+      # Schedule Redis only on warm nodes
+      nodeSelector:
+        pool: warm
+
+      # Tolerate warm pool taint
+      tolerations:
+        - key: "warm-pool"
+          operator: "Equal"
+          value: "true"
+          effect: "NoSchedule"
+
       containers:
         - name: redis
-          image: redis:7.0
+          image: redis:7.0.15   # pinned version (avoid :latest)
+          imagePullPolicy: IfNotPresent
+
           ports:
             - containerPort: 6379
+
+          # Explicit command (recommended)
+          command: ["redis-server"]
+          args:
+            - "--save"
+            - ""                 # disable RDB persistence (OK for queue use-case)
+            - "--appendonly"
+            - "no"
+
           resources:
             requests:
               memory: "256Mi"
@@ -25,6 +47,22 @@ spec:
             limits:
               memory: "512Mi"
               cpu: "500m"
+
+          # Redis is alive if it accepts TCP
+          livenessProbe:
+            tcpSocket:
+              port: 6379
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            failureThreshold: 3
+
+          # Redis is ready only when it can accept traffic
+          readinessProbe:
+            tcpSocket:
+              port: 6379
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            failureThreshold: 3
 
 ---
 apiVersion: v1

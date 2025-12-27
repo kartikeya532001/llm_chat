@@ -3,12 +3,12 @@ name: Infra Deploy (Terraform)
 on:
   push:
     branches: [ master ]
-    # paths:
-    #   - "infra/**"
+    paths:
+      - "infra/**"
   pull_request:
     branches: [ master ]
-    # paths:
-    #   - "infra/**"
+    paths:
+      - "infra/**"
   workflow_dispatch:
 
 jobs:
