@@ -4,8 +4,8 @@ on:
   push:
     branches:
       - master
-    paths:
-      - "k8s/**"
+    # paths:
+    #   - "k8s/**"
   workflow_dispatch:
 
 jobs:
@@ -49,6 +49,7 @@ jobs:
       # -------------------------
       - name: Create Docker pull secret
         run: |
+          kubectl apply -f k8s/namespace.yaml
           kubectl create secret docker-registry regcred \
             --docker-server=https://index.docker.io/v1/ \
             --docker-username=kartikeya532001 \
@@ -75,7 +76,6 @@ jobs:
       # -------------------------
       - name: Deploy manifests
         run: |
-          kubectl apply -f k8s/namespace.yaml
           kubectl apply -f k8s/ingress.yaml
           kubectl apply -f k8s/redis.yaml
           kubectl apply -f k8s/api.yaml
