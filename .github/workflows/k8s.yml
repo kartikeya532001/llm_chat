@@ -79,7 +79,6 @@ jobs:
           --cert=tls.crt \
           --key=tls.key \
           -n kube-system
-          kubectl -n kube-system create secret tls aws-load-balancer-webhook-tls   --cert=tls.crt   --key=tls.key
         else
           echo "Secret aws-load-balancer-webhook-tls already exists. Skipping."
         fi
